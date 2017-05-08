@@ -1,7 +1,7 @@
 const superagent = require('superagent')
 const express    = require('express')
 const sessions   = require('client-sessions')
-const shortid    = require('shortid')
+const crypto     = require('crypto')
 
 const config  = require('../config')
 const api_url = config.gitlab_api_url
@@ -32,7 +32,7 @@ app.use(function resetTimeout(req, res, next) {
   if (id != null) {
     clearTimeout(timeouts[id])
     timeouts[id] = setTimeout(() => {
-      removeUser(id)
+      deleteUser(id)
     }, config.session_timeout)
   }
   return next()
@@ -49,7 +49,7 @@ app.use(function proxyApi(req, res, next) {
 })
 
 function createUser() {
-  const id = shortid.generate()
+  const id = random()
   return superagent.post(`${api_url}/users`)
     .set('PRIVATE-TOKEN', config.gitlab_api_token)
     .send({
@@ -59,7 +59,7 @@ function createUser() {
       email    : `temp-email-for-oauth-${id}@gitlab.localhost`,
       username : id,
       name     : id,
-      password : shortid.generate(),
+      password : random(),
     })
     .then(r => r.body)
     .then(user => {
@@ -67,7 +67,7 @@ function createUser() {
         .set('PRIVATE-TOKEN', config.gitlab_api_token)
         .send({
           user_id: user.id,
-          name: shortid.generate(),
+          name: random(),
           scopes: ['api', 'read_user'],
         })
         .then(r => {
@@ -77,11 +77,15 @@ function createUser() {
     })
 }
 
-function removeUser(user_id) {
+function deleteUser(user_id) {
   return superagent.delete(`${api_url}/users/${user_id}`)
     .set('PRIVATE-TOKEN', config.gitlab_api_token)
     .then(r => console.log('Deleted user', user_id))
     .catch(e => console.error('Error deleting user', user_id, e))
+}
+
+function random() {
+  return crypto.randomBytes(20).toString('hex')
 }
 
 
