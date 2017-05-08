@@ -17,7 +17,7 @@ app.use(sessions({
   activeDuration : config.session_timeout,
 }))
 
-app.use((req, res, next) => {
+app.use(function createSession(req, res, next) {
   if (req.session.id == null) {
     return createUser().then(info => {
       req.session = info
@@ -27,18 +27,18 @@ app.use((req, res, next) => {
   return next()
 })
 
-app.use((req, res, next) => {
-  if (req.session.token != null) {
-    const timeout = timeouts[req.session.id]
-    clearTimeout(timeout)
-    timeouts[req.session.id] = setTimeout(() => {
-      removeUser(req.session.id)
+app.use(function resetTimeout(req, res, next) {
+  const id = req.session.id
+  if (id != null) {
+    clearTimeout(timeouts[id])
+    timeouts[id] = setTimeout(() => {
+      removeUser(id)
     }, config.session_timeout)
   }
   return next()
 })
 
-app.use((req, res, next) => {
+app.use(function proxyApi(req, res, next) {
   if (req.session.token) {
     return superagent(req.method, api_url + req.url)
       .set('PRIVATE-TOKEN', req.session.token)
@@ -56,10 +56,10 @@ function createUser() {
       //That's the pattern gitlab uses internally for oauth when it can't get
       //the email. Using this might prevent it actually trying to send out
       //emails?
-      email         : `temp-email-for-oauth-${id}@gitlab.localhost`,
-      username      : id,
-      name          : id,
-      password      : shortid.generate(),
+      email    : `temp-email-for-oauth-${id}@gitlab.localhost`,
+      username : id,
+      name     : id,
+      password : shortid.generate(),
     })
     .then(r => r.body)
     .then(user => {
