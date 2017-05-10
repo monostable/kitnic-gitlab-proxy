@@ -4,11 +4,17 @@
   "main": "src/server.js",
   "license": "CPAL-1.0",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test:i": "mocha integration/"
   },
   "dependencies": {
     "client-sessions": "^0.8.0",
     "express": "^4.15.2",
     "superagent": "^3.5.2"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.3.0",
+    "supertest": "^3.0.0"
   }
 }
