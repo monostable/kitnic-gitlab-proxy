@@ -49,26 +49,27 @@ app.use(function proxyApi(req, res, next) {
 })
 
 function createUser() {
-  const id = random()
+  const name = random()
   return superagent.post(`${api_url}/users`)
     .set('PRIVATE-TOKEN', config.gitlab_api_token)
     .send({
       //That's the pattern gitlab uses internally for oauth when it can't get
       //the email. Using this might prevent it actually trying to send out
       //emails?
-      email    : `temp-email-for-oauth-${id}@gitlab.localhost`,
-      username : id,
-      name     : id,
-      password : random(),
+      email          : `temp-email-for-oauth-${name}@gitlab.localhost`,
+      username       : name,
+      name           : name,
+      password       : random(),
+      projects_limit : 10,
     })
     .then(r => r.body)
     .then(user => {
       return superagent.post(`${api_url}/users/${user.id}/impersonation_tokens`)
         .set('PRIVATE-TOKEN', config.gitlab_api_token)
         .send({
-          user_id: user.id,
-          name: random(),
-          scopes: ['api', 'read_user'],
+          user_id : user.id,
+          name    : random(),
+          scopes  : ['api', 'read_user'],
         })
         .then(r => {
           console.log('Created user', user.id)
