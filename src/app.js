@@ -60,29 +60,31 @@ app.post('/gitlab/projects', jsonParser, function setUpHooks(req, res, next) {
     return superagent(req.method, url)
       .set('PRIVATE-TOKEN', req.session.token)
       .send(req.body)
-      .then(r => res.send(r.body))
-      //.then(project => {
-      //  console.log('setting up hook')
-      //  return superagent.post(api_url + `/projects/${project.id}/hooks`)
-      //    .set('PRIVATE-TOKEN', req.session.token)
-      //    .send({
-      //      url: `https://user-data.gitlab2.kitnic.it/\
-      //        hooks/${req.session.id}/${project.id}`
-      //    })
-      //    .then(r => res.send(project))
-      //    .catch(e => res.sendStatus(e.status))
-      //})
-      //.catch(e => res.sendStatus(e.status))
+      .then(r => r.body)
+      .then(project => {
+        console.log('setting up hook')
+        console.log(project.id)
+        return superagent.post(api_url + `/projects/${project.id}/hooks`)
+          .set('Content-Type', 'application/json')
+          .set('PRIVATE-TOKEN', config.gitlab_api_token)
+          .send({
+            url: `https://user-data.gitlab2.kitnic.it/hooks/${req.session.id}/${project.id}`,
+          })
+          .then(r => res.send(project))
+          .catch(e => res.sendStatus(e.status))
+      })
+      .catch(e => res.sendStatus(e.status))
   }
   return res.sendStatus(401)
 })
 
-//app.use('/gitlab', proxyApi)
+app.use('/gitlab', proxyApi)
 
-app.post('/hooks/:session_id/:project_id', function handleHook(req, res, next) {
+app.post('/hooks/:session_id/:project_id', jsonParser, function handleHook(req, res, next) {
   console.log('got a hook!')
+  console.log(req.body)
+  return res.send('ok')
 })
-
 
 
 function createUser() {
