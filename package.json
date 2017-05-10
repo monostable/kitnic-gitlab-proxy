@@ -5,16 +5,16 @@
   "license": "CPAL-1.0",
   "scripts": {
     "start": "node src/server.js",
-    "test:i": "mocha integration/"
+    "test:i": "mocha --timeout=32000 integration/"
   },
   "dependencies": {
+    "body-parser": "^1.17.1",
     "client-sessions": "^0.8.0",
     "express": "^4.15.2",
     "superagent": "^3.5.2"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
     "mocha": "^3.3.0",
-    "supertest": "^3.0.0"
+    "supertest": "https://github.com/LegNeato/supertest"
   }
 }
