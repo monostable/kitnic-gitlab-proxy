@@ -1,0 +1,4 @@
+digraph G {
+  upload -> GitLab -> hook -> process
+  upload -> proxy -> GitLab
+}

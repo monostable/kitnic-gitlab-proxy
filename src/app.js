@@ -39,11 +39,19 @@ app.use(function resetTimeout(req, res, next) {
   return next()
 })
 
+const jsonParser = bodyParser.json()
+
 function proxyApi(req, res, next) {
+  console.log('got gitlab proxy request', req.session.token)
   if (req.session.token) {
-    return superagent(req.method, api_url + req.url.replace(/^\/gitlab/, ''))
+    const url = api_url + req.url.replace(/^\/gitlab/, '')
+    return superagent(req.method, url)
       .set('PRIVATE-TOKEN', req.session.token)
-      .then(r => res.send(r.body))
+      .send(req.body)
+      .then(r => {
+        console.log('r.body', r.body)
+        res.send(r.body)
+      })
       .catch(e => res.sendStatus(e.status))
   }
   return res.sendStatus(401)
@@ -51,7 +59,6 @@ function proxyApi(req, res, next) {
 
 app.get('/', (req, res) => res.send('ok'))
 
-const jsonParser = bodyParser.json()
 app.post('/gitlab/projects', jsonParser, function setUpHooks(req, res, next) {
   console.log('got /gitlab/projects')
   if (req.session.token) {
@@ -78,7 +85,8 @@ app.post('/gitlab/projects', jsonParser, function setUpHooks(req, res, next) {
   return res.sendStatus(401)
 })
 
-app.use('/gitlab', proxyApi)
+app.use('/gitlab', jsonParser, proxyApi)
+
 
 app.post('/hooks/:session_id/:project_id', jsonParser, function handleHook(req, res, next) {
   console.log('got a hook!')
