@@ -59,4 +59,47 @@ describe('app' , () => {
           })
       })
   })
+  it('lets you upload multiple files', done => {
+    const agent = request.agent(app)
+    let id
+    agent.post('/gitlab/projects')
+      .set('Content-Type', 'application/json')
+      .send({
+        name: 'test'
+      })
+      .then(r => {
+        assert(r.status === 200)
+        id = r.body.id
+      })
+      .catch(e => {
+        assert(false)
+      })
+      .then(() => {
+        return agent.post(`/gitlab/projects/${id}/repository/commits`)
+          .send({
+            branch:'master',
+            commit_message:'Upload file through kitnic.it',
+            actions: [
+              {
+                action: 'create',
+                file_path: 'test1',
+                content: 'hi',
+              },
+              {
+                action: 'create',
+                file_path: 'test2',
+                content: 'lo',
+              },
+            ],
+          })
+          .then(r => {
+            assert(r.status === 200)
+            done()
+          })
+          .catch(e => {
+            assert(false)
+            done()
+          })
+      })
+  })
 })
