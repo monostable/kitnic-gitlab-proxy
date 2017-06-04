@@ -30,6 +30,12 @@ describe('app' , () => {
 
 describe('uploads' , () => {
   let agent, id, p
+  const file1 = 'file1'
+  const file2 = 'file2'
+  const content1 = 'hi'
+  const content2 = 'lo'
+  const branch = 'master'
+
   beforeEach(test => {
     agent = request.agent(app)
     p = agent.post('/gitlab/projects')
@@ -43,6 +49,7 @@ describe('uploads' , () => {
       })
       .then(test)
   })
+
   it('lets you upload a file', () => {
     return p.then(() => {
       return agent.post(`/gitlab/projects/${id}/repository/files/test`)
@@ -57,13 +64,9 @@ describe('uploads' , () => {
         })
     })
   })
+
   it('lets you upload multiple files', () => {
     return p.then(() => {
-      const file1 = 'file1'
-      const file2 = 'file2'
-      const content1 = 'hi'
-      const content2 = 'lo'
-      const branch = 'master'
       return agent.post(`/gitlab/projects/${id}/repository/commits`)
         .send({
           branch,
@@ -81,20 +84,19 @@ describe('uploads' , () => {
             },
           ],
         })
+    }).then(r => {
+      assert(r.status === 200)
+      const p1 = agent.get(`/gitlab/projects/${id}/repository/files/${file1}/raw?ref=${branch}`)
         .then(r => {
           assert(r.status === 200)
-          const p1 = agent.get(`/gitlab/projects/${id}/repository/files/${file1}/raw?ref=${branch}`)
-          .then(r => {
-            assert(r.status === 200)
-            assert(r.text === content1)
-          })
-          const p2 = agent.get(`/gitlab/projects/${id}/repository/files/${file2}/raw?ref=${branch}`)
-          .then(r => {
-            assert(r.status === 200)
-            assert(r.text === content2)
-          })
-          return Promise.all([p1, p2])
+          assert(r.text === content1)
         })
+      const p2 = agent.get(`/gitlab/projects/${id}/repository/files/${file2}/raw?ref=${branch}`)
+        .then(r => {
+          assert(r.status === 200)
+          assert(r.text === content2)
+        })
+      return Promise.all([p1, p2])
     })
   })
 })
