@@ -59,7 +59,9 @@ function proxyApi(req, res, next) {
 
 app.get('/', (req, res) => res.send('ok'))
 
-app.post('/gitlab/projects', jsonParser, function setUpHooks(req, res, next) {
+app.use('/gitlab', jsonParser)
+
+app.post('/gitlab/projects', function setUpHooks(req, res, next) {
   console.log('got /gitlab/projects')
   if (req.session.token) {
     const url = api_url + req.url.replace(/^\/gitlab/, '')
@@ -73,7 +75,7 @@ app.post('/gitlab/projects', jsonParser, function setUpHooks(req, res, next) {
         console.log(project.id)
         return superagent.post(api_url + `/projects/${project.id}/hooks`)
           .set('Content-Type', 'application/json')
-          .set('PRIVATE-TOKEN', config.gitlab_api_token)
+          .set('PRIVATE-TOKEN', req.session.token)
           .send({
             url: `https://user-data.gitlab2.kitnic.it/hooks/${req.session.id}/${project.id}`,
           })
@@ -85,7 +87,7 @@ app.post('/gitlab/projects', jsonParser, function setUpHooks(req, res, next) {
   return res.sendStatus(401)
 })
 
-app.use('/gitlab', jsonParser, proxyApi)
+app.use('/gitlab', proxyApi)
 
 
 app.post('/hooks/:session_id/:project_id', jsonParser, function handleHook(req, res, next) {
