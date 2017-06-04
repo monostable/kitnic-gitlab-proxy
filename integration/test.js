@@ -2,17 +2,32 @@ const request = require('supertest')
 const path    = require('path')
 const assert  = require('better-assert')
 
-const app = require('../src/app')
+const {app, deleteUser} = require('../src/app')
 
-describe('app' , () => {
+describe('basics', () => {
+  let agent
+  beforeEach(() => {
+    agent = request.agent(app)
+  })
+  afterEach(() => {
+    return agent.get('/gitlab/user')
+      .accept('application/json')
+      .then(r => deleteUser(r.body.id))
+  })
   it('responds to GET on index', done => {
-    request(app)
-    .get('/')
-    .expect(200, done)
+    agent.get('/')
+      .expect(200, done)
+  })
+  it('responds with user', () => {
+    return agent.get('/gitlab/user')
+      .accept('application/json')
+      .then(r => {
+        assert(r.status === 200)
+        assert(r.body.id != null)
+      })
   })
   it('allows creating a project', done => {
-    request(app)
-      .post('/gitlab/projects')
+    agent.post('/gitlab/projects')
       .set('Content-Type', 'application/json')
       .send({
         name: 'test'
@@ -47,6 +62,12 @@ describe('uploads' , () => {
         assert(r.status === 200)
         id = r.body.id
       })
+  })
+
+  afterEach(() => {
+    return agent.get('/gitlab/user')
+      .accept('application/json')
+      .then(r => deleteUser(r.body.id))
   })
 
   it('lets you upload a file', () => {

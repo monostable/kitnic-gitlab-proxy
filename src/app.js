@@ -49,6 +49,9 @@ function proxyApi(req, res, next) {
       .set('PRIVATE-TOKEN', req.session.token)
       .send(req.body)
       .then(r => {
+        if (req.headers['accept'] === 'application/json') {
+          return res.send(r.body)
+        }
         return res.send(r.text)
       })
       .catch(e => res.sendStatus(e.status))
@@ -144,4 +147,4 @@ function random() {
   return crypto.randomBytes(20).toString('hex')
 }
 
-module.exports = app
+module.exports = {deleteUser, app}
