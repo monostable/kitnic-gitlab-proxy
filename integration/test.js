@@ -1,6 +1,6 @@
 const request = require('supertest')
 const path    = require('path')
-const assert  = require('assert')
+const assert  = require('better-assert')
 
 const app = require('../src/app')
 
