@@ -41,29 +41,24 @@ describe('uploads' , () => {
         assert(r.status === 200)
         id = r.body.id
       })
-      .catch(e => {
-        assert(false)
-      })
       .then(test)
   })
-  it('lets you upload a file', done => {
-    p.then(() => {
+  it('lets you upload a file', () => {
+    return p.then(() => {
       return agent.post(`/gitlab/projects/${id}/repository/files/test`)
-      .send({
-        file_path: 'test',
-        branch: 'master',
-        content: 'hi',
-        commit_message: 'Upload file through kitnic.it'
-      })
-      .then(r => {
-        assert(r.status === 200)
-        done()
-      })
-      .catch(done)
+        .send({
+          file_path: 'test',
+          branch: 'master',
+          content: 'hi',
+          commit_message: 'Upload file through kitnic.it'
+        })
+        .then(r => {
+          assert(r.status === 200)
+        })
     })
   })
-  it('lets you upload multiple files', done => {
-    p.then(() => {
+  it('lets you upload multiple files', () => {
+    return p.then(() => {
       const file1 = 'file1'
       const file2 = 'file2'
       const content1 = 'hi'
@@ -98,7 +93,7 @@ describe('uploads' , () => {
             assert(r.status === 200)
             assert(r.text === content2)
           })
-          return Promise.all([p1, p2]).then(r => done())
+          return Promise.all([p1, p2])
         })
     })
   })
