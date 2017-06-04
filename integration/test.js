@@ -26,10 +26,13 @@ describe('app' , () => {
         done()
       })
   })
-  it('lets you upload a file', done => {
-    const agent = request.agent(app)
-    let id
-    agent.post('/gitlab/projects')
+})
+
+describe('uploads' , () => {
+  let agent, id, p
+  beforeEach(test => {
+    agent = request.agent(app)
+    p = agent.post('/gitlab/projects')
       .set('Content-Type', 'application/json')
       .send({
         name: 'test'
@@ -41,77 +44,62 @@ describe('app' , () => {
       .catch(e => {
         assert(false)
       })
-      .then(() => {
-        return agent.post(`/gitlab/projects/${id}/repository/files/test`)
-          .send({
-            file_path: 'test',
-            branch:'master',
-            content:'hi',
-            commit_message:'Upload file through kitnic.it'
-          })
-          .then(r => {
-            assert(r.status === 200)
-            done()
-          })
-          .catch(e => {
-            assert(false)
-            done()
-          })
+      .then(test)
+  })
+  it('lets you upload a file', done => {
+    p.then(() => {
+      return agent.post(`/gitlab/projects/${id}/repository/files/test`)
+      .send({
+        file_path: 'test',
+        branch: 'master',
+        content: 'hi',
+        commit_message: 'Upload file through kitnic.it'
       })
+      .then(r => {
+        assert(r.status === 200)
+        done()
+      })
+      .catch(done)
+    })
   })
   it('lets you upload multiple files', done => {
-    const agent = request.agent(app)
-    let id
-    agent.post('/gitlab/projects')
-      .set('Content-Type', 'application/json')
-      .send({
-        name: 'test'
-      })
-      .then(r => {
-        assert(r.status === 200)
-        id = r.body.id
-      })
-      .catch(e => {
-        assert(false)
-      })
-      .then(() => {
-        const file1 = 'file1'
-        const file2 = 'file2'
-        const content1 = 'hi'
-        const content2 = 'lo'
-        const branch = 'master'
-        return agent.post(`/gitlab/projects/${id}/repository/commits`)
-          .send({
-            branch,
-            commit_message:'Upload file through kitnic.it',
-            actions: [
-              {
-                action: 'create',
-                file_path: file1,
-                content: content1,
-              },
-              {
-                action: 'create',
-                file_path: file2,
-                content: content2,
-              },
-            ],
-          })
+    p.then(() => {
+      const file1 = 'file1'
+      const file2 = 'file2'
+      const content1 = 'hi'
+      const content2 = 'lo'
+      const branch = 'master'
+      return agent.post(`/gitlab/projects/${id}/repository/commits`)
+        .send({
+          branch,
+          commit_message: 'Upload file through kitnic.it',
+          actions: [
+            {
+              action: 'create',
+              file_path: file1,
+              content: content1,
+            },
+            {
+              action: 'create',
+              file_path: file2,
+              content: content2,
+            },
+          ],
+        })
+        .then(r => {
+          assert(r.status === 200)
+          const p1 = agent.get(`/gitlab/projects/${id}/repository/files/${file1}/raw?ref=${branch}`)
           .then(r => {
             assert(r.status === 200)
-            const p1 = agent.get(`/gitlab/projects/${id}/repository/files/${file1}/raw?ref=${branch}`)
-              .then(r => {
-                assert(r.status === 200)
-                assert(r.text === content1)
-              })
-            const p2 = agent.get(`/gitlab/projects/${id}/repository/files/${file2}/raw?ref=${branch}`)
-              .then(r => {
-                assert(r.status === 200)
-                assert(r.text === content2)
-              })
-            return Promise.all([p1, p2]).then(r => done())
+            assert(r.text === content1)
           })
-          .catch(done)
-      })
+          const p2 = agent.get(`/gitlab/projects/${id}/repository/files/${file2}/raw?ref=${branch}`)
+          .then(r => {
+            assert(r.status === 200)
+            assert(r.text === content2)
+          })
+          return Promise.all([p1, p2]).then(r => done())
+        })
+    })
   })
 })
