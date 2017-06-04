@@ -4,19 +4,22 @@ const assert  = require('better-assert')
 
 const {app, deleteUser} = require('../src/app')
 
+let agent
+
+beforeEach(() => {
+  agent = request.agent(app)
+})
+
+afterEach(() => {
+  return agent.get('/gitlab/user')
+    .accept('application/json')
+    .then(r => deleteUser(r.body.id))
+})
+
 describe('basics', () => {
-  let agent
-  beforeEach(() => {
-    agent = request.agent(app)
-  })
-  afterEach(() => {
-    return agent.get('/gitlab/user')
-      .accept('application/json')
-      .then(r => deleteUser(r.body.id))
-  })
-  it('responds to GET on index', done => {
-    agent.get('/')
-      .expect(200, done)
+  it('responds to GET on index', () => {
+    return agent.get('/')
+      .expect(200)
   })
   it('responds with user', () => {
     return agent.get('/gitlab/user')
@@ -26,25 +29,21 @@ describe('basics', () => {
         assert(r.body.id != null)
       })
   })
-  it('allows creating a project', done => {
-    agent.post('/gitlab/projects')
-      .set('Content-Type', 'application/json')
+})
+
+describe('projects', () => {
+  it('allows creating a project', () => {
+    return agent.post('/gitlab/projects')
       .send({
         name: 'test'
       })
       .then(r => {
         assert(r.status === 200)
-        done()
-      })
-      .catch(e => {
-        assert(false)
-        done()
       })
   })
 })
 
 describe('uploads' , () => {
-  let agent, id
   const file1 = 'file1'
   const file2 = 'file2'
   const content1 = 'hi'
@@ -52,9 +51,7 @@ describe('uploads' , () => {
   const branch = 'master'
 
   beforeEach(() => {
-    agent = request.agent(app)
     return agent.post('/gitlab/projects')
-      .set('Content-Type', 'application/json')
       .send({
         name: 'test'
       })
@@ -62,12 +59,6 @@ describe('uploads' , () => {
         assert(r.status === 200)
         id = r.body.id
       })
-  })
-
-  afterEach(() => {
-    return agent.get('/gitlab/user')
-      .accept('application/json')
-      .then(r => deleteUser(r.body.id))
   })
 
   it('lets you upload a file', () => {
