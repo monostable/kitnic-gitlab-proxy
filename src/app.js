@@ -49,11 +49,7 @@ function proxyApi(req, res, next) {
       .set('PRIVATE-TOKEN', req.session.token)
       .send(req.body)
       .then(r => {
-        if (Object.keys(r.body).length === 0) {
-          return res.send(r.text)
-        } else {
-          return res.send(r.body)
-        }
+        return res.send(r.text)
       })
       .catch(e => res.sendStatus(e.status))
   }
