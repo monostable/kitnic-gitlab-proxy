@@ -49,8 +49,11 @@ function proxyApi(req, res, next) {
       .set('PRIVATE-TOKEN', req.session.token)
       .send(req.body)
       .then(r => {
-        console.log('r.body', r.body)
-        res.send(r.body)
+        if (Object.keys(r.body).length === 0) {
+          return res.send(r.text)
+        } else {
+          return res.send(r.body)
+        }
       })
       .catch(e => res.sendStatus(e.status))
   }
@@ -59,7 +62,14 @@ function proxyApi(req, res, next) {
 
 app.get('/', (req, res) => res.send('ok'))
 
-app.use('/gitlab', jsonParser)
+app.use('/gitlab', function checkIfJson(req, res, next)  {
+  const type = req.headers['content-type']
+  if (type === 'application/json') {
+    return jsonParser(req, res, next)
+  }
+  return next()
+})
+
 
 app.post('/gitlab/projects', function setUpHooks(req, res, next) {
   console.log('got /gitlab/projects')
