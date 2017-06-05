@@ -42,11 +42,13 @@ app.use(function resetTimeout(req, res, next) {
 const jsonParser = bodyParser.json()
 
 function proxyApi(req, res, next) {
-  console.log('got gitlab proxy request', req.session.token)
+  console.log('got gitlab proxy request', req.url)
   if (req.session.token) {
     const url = api_url + req.url.replace(/^\/gitlab/, '')
+    console.log(url)
     return superagent(req.method, url)
       .set('PRIVATE-TOKEN', req.session.token)
+      .accept('application/json')
       .send(req.body)
       .then(r => {
         if (req.headers['accept'] === 'application/json') {

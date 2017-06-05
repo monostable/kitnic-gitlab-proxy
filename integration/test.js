@@ -1,8 +1,11 @@
-const request = require('supertest')
-const path    = require('path')
-const assert  = require('better-assert')
+const request     = require('supertest')
+const path        = require('path')
+const assert      = require('better-assert')
+const {promisify} = require('util')
 
 const {app, deleteUser} = require('../src/app')
+
+setTimeoutPromise = promisify(setTimeout)
 
 let agent
 
@@ -39,6 +42,26 @@ describe('projects', () => {
       })
       .then(r => {
         assert(r.status === 200)
+      })
+  })
+  it('allows importing a project', () => {
+    return agent.post('/gitlab/projects')
+      .send({
+        name: 'test',
+        import_url: 'https://github.com/kasbah/test-repo',
+      })
+      .then(r => {
+        assert(r.status === 200)
+        return setTimeoutPromise(5000, r.body.id)
+      })
+      .then(id => {
+        return agent.get(`/gitlab/projects/${id}/repository/tree`)
+          .accept('application/json')
+          .then(r => {
+            assert(r.status === 200)
+            assert(r.body.some(x => x.name === 'test-file'))
+            assert(r.body.some(x => x.name === 'test-dir'))
+          })
       })
   })
 })
@@ -93,17 +116,18 @@ describe('uploads' , () => {
           ],
         }).then(r => {
           assert(r.status === 200)
+        }).then(() => {
           const p1 = agent.get(`/gitlab/projects/${id}/repository/files/${file1}/raw?ref=${branch}`)
-          .then(r => {
-            assert(r.status === 200)
-            assert(r.text === content1)
-          })
+            .then(r => {
+              assert(r.status === 200)
+              assert(r.text === content1)
+            })
           const p2 = agent.get(`/gitlab/projects/${id}/repository/files/${file2}/raw?ref=${branch}`)
-          .then(r => {
-            assert(r.status === 200)
-            assert(r.text === content2)
-          })
+            .then(r => {
+              assert(r.status === 200)
+              assert(r.text === content2)
+            })
           return Promise.all([p1, p2])
-      })
+        })
   })
 })
