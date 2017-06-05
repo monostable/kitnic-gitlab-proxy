@@ -13,10 +13,9 @@ beforeEach(() => {
   agent = request.agent(app)
 })
 
-afterEach(() => {
-  return agent.get('/gitlab/user')
-    .accept('application/json')
-    .then(r => deleteUser(r.body.id))
+afterEach(async () => {
+  const r = await agent.get('/gitlab/user').accept('application/json')
+  return deleteUser(r.body.id)
 })
 
 describe('basics', () => {
@@ -44,25 +43,18 @@ describe('projects', () => {
         assert(r.status === 200)
       })
   })
-  it('allows importing a project', () => {
-    return agent.post('/gitlab/projects')
+  it('allows importing a project', async () => {
+    let r = await agent.post('/gitlab/projects')
       .send({
         name: 'test',
         import_url: 'https://github.com/kasbah/test-repo',
       })
-      .then(r => {
-        assert(r.status === 200)
-        return r.body.id
-      })
-      .then(id => {
-        return agent.get(`/gitlab/projects/${id}/repository/tree`)
-          .accept('application/json')
-          .then(r => {
-            assert(r.status === 200)
-            assert(r.body.some(x => x.name === 'test-file'))
-            assert(r.body.some(x => x.name === 'test-dir'))
-          })
-      })
+    assert(r.status === 200)
+    r = await agent.get(`/gitlab/projects/${r.body.id}/repository/tree`)
+      .accept('application/json')
+    assert(r.status === 200)
+    assert(r.body.some(x => x.name === 'test-file'))
+    assert(r.body.some(x => x.name === 'test-dir'))
   })
 })
 
