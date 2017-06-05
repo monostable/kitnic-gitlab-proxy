@@ -84,21 +84,17 @@ app.post('/gitlab/projects', function setUpHooks(req, res, next) {
       .then(async project => {
         //if it's an import wait till we can actually see the file tree
         if (req.body.import_url) {
-          function checkTree() {
-            const url = api_url + `/projects/${project.id}/repository/tree`
-            return superagent.get(url)
-              .accept('application/json')
-              .set('PRIVATE-TOKEN', req.session.token)
-              .then(r => r.status)
-              .catch(e => e.status)
-          }
           let status, tries = 0
+          const url = api_url + `/projects/${project.id}/repository/tree`
           while (status !== 200) {
             tries += 1
             if (tries >= 1000) {
               return Promise.reject({status: 500})
             }
-            status = await checkTree()
+            status = await superagent.get(url)
+              .set('PRIVATE-TOKEN', req.session.token)
+              .then(r => r.status)
+              .catch(e => e.status)
           }
         }
 
