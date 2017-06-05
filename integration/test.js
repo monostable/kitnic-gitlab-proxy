@@ -52,7 +52,7 @@ describe('projects', () => {
       })
       .then(r => {
         assert(r.status === 200)
-        return setTimeoutPromise(5000, r.body.id)
+        return r.body.id
       })
       .then(id => {
         return agent.get(`/gitlab/projects/${id}/repository/tree`)

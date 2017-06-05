@@ -2,7 +2,7 @@ const superagent = require('superagent')
 const express    = require('express')
 const sessions   = require('client-sessions')
 const crypto     = require('crypto')
-const bodyParser    = require('body-parser')
+const bodyParser = require('body-parser')
 
 const config  = require('../config')
 const api_url = config.gitlab_api_url
@@ -18,7 +18,7 @@ app.use(sessions({
   activeDuration : config.session_timeout,
 }))
 
-app.use(function createSession(req, res, next) {
+app.use('/gitlab', function createSession(req, res, next) {
   if (req.session.id == null) {
     return createUser().then(info => {
       req.session = info
@@ -28,7 +28,7 @@ app.use(function createSession(req, res, next) {
   return next()
 })
 
-app.use(function resetTimeout(req, res, next) {
+app.use('/gitlab', function resetTimeout(req, res, next) {
   const id = req.session.id
   if (id != null) {
     clearTimeout(timeouts[id])
@@ -81,18 +81,30 @@ app.post('/gitlab/projects', function setUpHooks(req, res, next) {
       .set('PRIVATE-TOKEN', req.session.token)
       .send(req.body)
       .then(r => r.body)
-      .then(project => {
-        console.log('setting up hook')
-        console.log(project.id)
-        return superagent.post(api_url + `/projects/${project.id}/hooks`)
-          .set('Content-Type', 'application/json')
-          .set('PRIVATE-TOKEN', req.session.token)
-          .send({
-            url: `https://user-data.gitlab2.kitnic.it/hooks/${req.session.id}/${project.id}`,
-          })
-          .then(r => res.send(project))
-          .catch(e => res.sendStatus(e.status))
+      .then(async project => {
+        //if it's an import wait till we can actually see the file tree
+        if (req.body.import_url) {
+          function checkTree() {
+            const url = api_url + `/projects/${project.id}/repository/tree`
+            return superagent.get(url)
+              .accept('application/json')
+              .set('PRIVATE-TOKEN', req.session.token)
+              .then(r => r.status)
+              .catch(e => e.status)
+          }
+          let status, tries = 0
+          while (status !== 200) {
+            tries += 1
+            if (tries >= 1000) {
+              return Promise.reject({status: 500})
+            }
+            status = await checkTree()
+          }
+        }
+
+        return project
       })
+      .then(project => res.send(project))
       .catch(e => res.sendStatus(e.status))
   }
   return res.sendStatus(401)
@@ -104,6 +116,20 @@ app.use('/gitlab', proxyApi)
 app.post('/hooks/:session_id/:project_id', jsonParser, function handleHook(req, res, next) {
   console.log('got a hook!')
   console.log(req.body)
+  return res.send('ok')
+})
+
+app.post('/system-hooks', jsonParser, function handleHook(req, res, next) {
+  console.log('system-hook', req.body.event_name)
+  if (req.body.event_name === 'project_create') {
+    const url = api_url + `/projects/${req.body.project_id}/repository/tree`
+    console.log(url)
+    superagent.get(url)
+        .accept('application/json')
+        .set('PRIVATE-TOKEN', config.gitlab_api_token)
+        .then(r => console.log(r.body))
+        .catch(e => console.error(e))
+  }
   return res.send('ok')
 })
 
