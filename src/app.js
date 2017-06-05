@@ -72,11 +72,14 @@ app.use('/gitlab', function checkIfJson(req, res, next)  {
 })
 
 
-app.post('/gitlab/projects', function setUpHooks(req, res, next) {
+app.post('/gitlab/projects', function addProject(req, res, next) {
   console.log('got /gitlab/projects')
   if (req.session.token) {
+    if (req.body.import_url && (req.body.name == null)) {
+        const split = req.body.import_url.split('/')
+        req.body.name = split[split.length - 1]
+    }
     const url = api_url + req.url.replace(/^\/gitlab/, '')
-    console.log(req.body)
     return superagent(req.method, url)
       .set('PRIVATE-TOKEN', req.session.token)
       .send(req.body)

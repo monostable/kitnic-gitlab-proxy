@@ -46,7 +46,6 @@ describe('projects', () => {
   it('allows importing a project', async () => {
     let r = await agent.post('/gitlab/projects')
       .send({
-        name: 'test',
         import_url: 'https://github.com/kasbah/test-repo',
       })
     assert(r.status === 200)
